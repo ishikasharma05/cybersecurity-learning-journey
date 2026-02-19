@@ -1,0 +1,278 @@
+# Linux File System & Navigation – (SOC Perspective)
+
+## Introduction
+
+The Linux file system follows a hierarchical structure that starts from a single root directory: `/`.  
+Every file and directory in the system branches out from this root. Understanding how this structure works is extremely important for system administration, security monitoring, and SOC operations.
+
+In cybersecurity, knowing *where things are stored* helps in detecting attacks, investigating incidents, and securing systems properly.
+
+---
+
+## 1. Core Linux Directories
+
+### /etc – System Configuration Directory
+
+The `/etc` directory contains configuration files for the entire system. Almost every major service and system setting is controlled from here.
+
+This includes:
+- User account information
+- Password configuration
+- Network settings
+- Service configuration files
+- Startup configurations
+
+#### Important Files Inside /etc
+
+**/etc/passwd**
+
+This file stores basic information about user accounts. It does not store passwords directly, but it defines users in the system.
+
+Example format:
+username:x:UID:GID:comment:home_directory:shell
+
+Example entry:
+ishika:x:1001:1001:Ishika:/home/ishika:/bin/bash
+
+Each field represents:
+- Username  
+- Password placeholder (x)  
+- User ID (UID)  
+- Group ID (GID)  
+- Comment/description  
+- Home directory  
+- Default login shell  
+
+---
+
+**/etc/shadow**
+
+This file stores encrypted user passwords. It is readable only by the root user for security reasons.
+
+Example:
+ishika:$6$hashedpassword:19876:0:99999:7:::
+
+If an attacker gains access to this file, they may attempt offline password cracking. That is why strict permissions on this file are critical.
+
+---
+
+**/etc/group**
+
+This file stores group information. Groups are used to manage permissions efficiently.
+
+Example:
+sudo:x:27:ishika
+
+If a user is added to a privileged group like `sudo`, they may gain administrative rights.
+
+---
+
+**/etc/hosts**
+
+This file is used for local hostname resolution. It maps IP addresses to hostnames without needing DNS.
+
+Example:
+127.0.0.1 localhost  
+192.168.1.10 internal-server  
+
+Attackers sometimes modify this file to redirect traffic or manipulate connections.
+
+---
+
+### /var – Variable Data Directory
+
+The `/var` directory contains files that frequently change while the system is running. This includes logs, cache files, mail data, and spool files.
+
+For SOC analysts, this directory is extremely important.
+
+---
+
+#### /var/log – Log Storage
+
+Most system logs are stored here.
+
+**/var/log/auth.log**
+
+This file contains authentication-related logs such as:
+- SSH login attempts  
+- Failed login attempts  
+- sudo command usage  
+- Authentication events  
+
+Example:
+Failed password for root from 192.168.1.50 port 22
+
+This file is essential for detecting brute-force attacks and unauthorized access attempts.
+
+---
+
+**/var/log/syslog**
+
+This file contains general system activity such as:
+- Service start and stop events  
+- Kernel messages  
+- System errors  
+- Hardware-related logs  
+
+It is commonly used during troubleshooting and incident analysis.
+
+---
+
+### /home – User Directories
+
+The `/home` directory contains personal directories for normal users.
+
+Examples:
+- /home/ishika  
+- /home/rahul  
+
+Each user’s files, downloads, and personal configuration files (such as `.bashrc`) are stored here.
+
+If an attacker compromises a regular user account, this is usually where they operate first.
+
+---
+
+### /tmp – Temporary Directory
+
+The `/tmp` directory is used for temporary file storage. It is writable by all users and is often cleared after reboot.
+
+Because of its open nature, attackers may:
+- Store malicious scripts  
+- Drop temporary payloads  
+- Execute reverse shells  
+
+To inspect this directory:
+ls -lah /tmp
+
+Monitoring this directory is important during investigations.
+
+---
+
+### /opt – Optional Software
+
+The `/opt` directory is generally used for manually installed or third-party applications.
+
+Examples:
+- /opt/google/  
+- /opt/splunk/  
+
+Software installed here is usually not part of the core operating system.
+
+---
+
+### /usr – User System Resources
+
+This directory contains most of the installed programs and libraries on the system.
+
+It includes:
+- Executable programs  
+- Shared libraries  
+- Documentation  
+- System utilities  
+
+It represents the majority of user-level system software.
+
+---
+
+### /bin – Essential Binaries
+
+The `/bin` directory contains essential command-line tools required for basic system functionality.
+
+Examples:
+- ls  
+- cp  
+- mv  
+- cat  
+- bash  
+
+These commands are necessary even in recovery mode.
+
+---
+
+### /sbin – System Binaries
+
+The `/sbin` directory contains system-level administrative commands, mainly used by the root user.
+
+Examples:
+- reboot  
+- fdisk  
+- ifconfig  
+
+If these binaries are modified, it may indicate a serious system compromise.
+
+---
+
+### /proc – Process Information (Virtual Filesystem)
+
+The `/proc` directory is a virtual filesystem created by the Linux kernel. It does not store actual files on disk.
+
+Each running process has a directory under `/proc` based on its Process ID (PID).
+
+Example:
+cat /proc/1234/cmdline
+
+This directory provides:
+- Process status  
+- Memory information  
+- Command-line arguments  
+
+It is heavily used during process analysis and forensic investigations.
+
+---
+
+## 2. Important Storage Locations Summary
+
+- User accounts → /etc/passwd  
+- Encrypted passwords → /etc/shadow  
+- Groups → /etc/group  
+- Network configuration → /etc/  
+- Authentication logs → /var/log/auth.log  
+- System logs → /var/log/syslog  
+- User files → /home/  
+- Temporary files → /tmp/  
+- Installed programs → /usr/  
+- Third-party applications → /opt/  
+- Running process information → /proc/  
+
+---
+
+## 3. SOC Investigation Workflow
+
+During an investigation, a security analyst may:
+
+Check authentication logs:
+cat /var/log/auth.log  
+
+Check for unauthorized users:
+cat /etc/passwd  
+
+Inspect temporary directory:
+ls -lah /tmp  
+
+Review running processes:
+ps aux  
+
+Inspect suspicious process details:
+cat /proc/<PID>/cmdline  
+
+These steps help in identifying unauthorized access, privilege escalation, or malware activity.
+
+---
+
+## 4. Security Insight
+
+If an attacker creates a new root-level user, the following files will be modified:
+
+- /etc/passwd  
+- /etc/shadow  
+- /etc/group (if added to a privileged group)  
+
+Monitoring these files is essential for detecting privilege escalation attempts.
+
+---
+
+## Conclusion
+
+Understanding the Linux file system is fundamental for anyone working in cybersecurity. It helps in monitoring system activity, investigating security incidents, detecting unauthorized access, and strengthening overall system security.
+
+For SOC analysts, knowing where data is stored and how directories function is not optional — it is a core skill.
